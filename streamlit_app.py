@@ -103,5 +103,29 @@ elif mode == "おばちゃん用":
             else:
                 st.error("商品名と価格を正しく入力してください。")
 
+        # メニュー削除機能
+        st.header("メニューを削除")
+        
+        # メニューリストを取得
+        c.execute("SELECT * FROM menu")
+        menu_items = c.fetchall()
+
+        if menu_items:
+            # メニュー削除用に選択肢を表示
+            menu_to_delete = st.selectbox("削除する商品を選んでください", [item[1] for item in menu_items])
+
+            if st.button("選択した商品を削除"):
+                # 選ばれた商品のIDを取得
+                selected_item = next(item for item in menu_items if item[1] == menu_to_delete)
+                item_id = selected_item[0]
+
+                # メニューから削除
+                c.execute("DELETE FROM menu WHERE id = ?", (item_id,))
+                conn.commit()
+
+                st.success(f"商品「{menu_to_delete}」が削除されました。")
+        else:
+            st.write("現在、削除できるメニューはありません。")
+
     else:
         st.error("パスコードが間違っています。")
