@@ -3,17 +3,11 @@ import sqlite3
 import io
 from PIL import Image
 
-# ページ設定
-st.set_page_config(page_title="購買部効率化アプリ", layout="wide")
-
-# パスコード設定
-ADMIN_PASSWORD = "admin123"
-
-# SQLiteデータベースの初期化
+# SQLite データベース接続
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
-# テーブル作成（画像データをBLOBとして格納）
+# メニューのテーブル作成（画像データ BLOB を含む）
 c.execute('''
 CREATE TABLE IF NOT EXISTS menu (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,88 +17,82 @@ CREATE TABLE IF NOT EXISTS menu (
 )
 ''')
 
+# 売上テーブル作成
 c.execute('''
 CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item TEXT NOT NULL,
-    quantity INTEGER NOT NULL,
-    total INTEGER NOT NULL
+    price INTEGER NOT NULL
 )
 ''')
-
 conn.commit()
 
-# タイトル
-st.title("購買部効率化アプリ")
-
-# 生徒用画面とおばちゃん用画面の切り替え
-mode = st.radio("モードを選択してください", ("生徒用", "おばちゃん用"))
+# 生徒用画面 or おばちゃん用画面の切り替え
+st.sidebar.title("画面の切り替え")
+mode = st.sidebar.radio("選択してください", ["生徒用画面", "おばちゃん用画面"])
 
 # 生徒用画面
-if mode == "生徒用":
-    st.header("メニュー")
-
-    # メニューをデータベースから取得
-    c.execute("SELECT * FROM menu")
+if mode == "生徒用画面":
+    st.title("📌 購買部メニュー")
+    
+    # メニューを表示
+    c.execute("SELECT id, item, price, image FROM menu")
     menu_items = c.fetchall()
 
-    items_selected = {}
-    total = 0
+    cart = []
+    total_price = 0
 
-    for item in menu_items:
-        item_id, item_name, price, image_data = item
+    for item_id, item_name, price, image_data in menu_items:
+        cols = st.columns([2, 1, 1])  # レイアウト調整
 
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            if image_data:
-                image = Image.open(io.BytesIO(image_data))
-                st.image(image, width=100)
+        # 商品名と価格を表示
+        cols[0].write(f"**{item_name}**")
+        cols[1].write(f"{price} 円")
 
-        with col2:
-            selected = st.checkbox(f"{item_name} ({price}円)")
-            items_selected[item_name] = selected
-            if selected:
-                total += price
+        # 画像を表示（存在する場合）
+        if image_data:
+            image = Image.open(io.BytesIO(image_data))
+            cols[0].image(image, width=100)
 
-    # 合計金額表示
-    if total > 0:
-        st.write(f"**合計金額: {total}円**")
-        if st.button("支払う"):
-            st.success(f"支払いが完了しました！ {total}円")
-            for item_name, selected in items_selected.items():
-                if selected:
-                    c.execute("INSERT INTO sales (item, quantity, total) VALUES (?, ?, ?)", (item_name, 1, price))
+        # 商品をカートに追加
+        if cols[2].button(f"追加", key=f"add_{item_id}"):
+            cart.append((item_name, price))
+            total_price += price
+
+    # カートの内容を表示
+    st.subheader("🛒 選択した商品")
+    if cart:
+        for item_name, price in cart:
+            st.write(f"- {item_name} ({price} 円)")
+
+        st.write(f"**合計金額: {total_price} 円**")
+        if st.button("会計する"):
+            for item_name, price in cart:
+                c.execute("INSERT INTO sales (item, price) VALUES (?, ?)", (item_name, price))
             conn.commit()
+            st.success("購入が完了しました！")
     else:
-        st.info("商品を選択してください")
+        st.write("商品を選択してください。")
 
-# おばちゃん用画面
-elif mode == "おばちゃん用":
-    password = st.text_input("パスコードを入力してください", type="password")
+# おばちゃん用画面（パスコード認証あり）
+else:
+    st.title("🔒 おばちゃん用管理画面")
 
-    if password == ADMIN_PASSWORD:
-        st.header("売れた商品")
+    # パスコード入力
+    password = st.text_input("パスコードを入力", type="password")
 
-        # 売上履歴を表示
-        c.execute("SELECT * FROM sales")
-        sales = c.fetchall()
+    if password == "1234":  # シンプルなパスコード（必要なら変更）
+        st.success("✅ 認証成功")
 
-        if sales:
-            for sale in sales:
-                st.write(f"**商品:** {sale[1]}  |  **数量:** {sale[2]}  |  **合計:** {sale[3]}円")
-        else:
-            st.write("現在、売上はありません。")
-
-        # メニュー登録機能
-        st.header("新商品を登録")
+        # **メニュー追加**
+        st.subheader("📌 新しい商品を登録")
         new_item = st.text_input("商品名")
         new_price = st.number_input("価格", min_value=0)
 
-        # 画像アップロードまたはカメラ撮影
         uploaded_file = st.file_uploader("商品画像をアップロード", type=["jpg", "png", "jpeg"])
         captured_image = st.camera_input("カメラで撮影")
 
-        # 画像の処理
+        # 画像データ処理
         image_data = None
         if uploaded_file:
             image = Image.open(uploaded_file)
@@ -117,36 +105,42 @@ elif mode == "おばちゃん用":
             image.save(img_byte_arr, format="PNG")
             image_data = img_byte_arr.getvalue()
 
-        # 商品を登録
         if st.button("商品を登録"):
             if new_item and new_price > 0:
-                # データベースに登録（画像データは BLOB 形式で保存）
                 c.execute("INSERT INTO menu (item, price, image) VALUES (?, ?, ?)", 
                           (new_item, new_price, sqlite3.Binary(image_data) if image_data else None))
                 conn.commit()
-                st.success(f"{new_item}が登録されました！")
+                st.success(f"{new_item} が登録されました！")
             else:
-                st.error("商品名と価格を正しく入力してください。")
+                st.error("商品名と価格を入力してください。")
 
-        # メニュー削除機能
-        st.header("メニューを削除")
-
-        # 現在のメニューリストを取得
-        c.execute("SELECT * FROM menu")
+        # **メニュー一覧（削除機能付き）**
+        st.subheader("🗑️ 商品管理")
+        c.execute("SELECT id, item, price FROM menu")
         menu_items = c.fetchall()
 
-        if menu_items:
-            menu_to_delete = st.selectbox("削除する商品を選んでください", [item[1] for item in menu_items])
+        for item_id, item_name, price in menu_items:
+            cols = st.columns([2, 1, 1])
 
-            if st.button("選択した商品を削除"):
-                selected_item = next(item for item in menu_items if item[1] == menu_to_delete)
-                item_id = selected_item[0]
+            cols[0].write(f"**{item_name}**")
+            cols[1].write(f"{price} 円")
 
-                c.execute("DELETE FROM menu WHERE id = ?", (item_id,))
+            if cols[2].button("削除", key=f"del_{item_id}"):
+                c.execute("DELETE FROM menu WHERE id=?", (item_id,))
                 conn.commit()
+                st.warning(f"{item_name} を削除しました。")
+                st.experimental_rerun()  # ページをリロード
 
-                st.success(f"商品「{menu_to_delete}」が削除されました。")
+        # **売上履歴**
+        st.subheader("📈 売上履歴")
+        c.execute("SELECT item, price FROM sales")
+        sales_data = c.fetchall()
+
+        if sales_data:
+            for item_name, price in sales_data:
+                st.write(f"- {item_name} ({price} 円)")
         else:
-            st.write("現在、削除できるメニューはありません。")
+            st.write("売上データがありません。")
+
     else:
         st.error("パスコードが間違っています。")
