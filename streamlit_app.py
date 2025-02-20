@@ -6,14 +6,14 @@ from PIL import Image
 # ページ設定
 st.set_page_config(page_title="購買部効率化アプリ", layout="wide")
 
-# パスコードの設定
+# パスコード設定
 ADMIN_PASSWORD = "admin123"
 
 # SQLiteデータベースの初期化
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
-# テーブル作成（メニューに画像データを追加）
+# テーブル作成（画像データをBLOBとして格納）
 c.execute('''
 CREATE TABLE IF NOT EXISTS menu (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,7 +37,7 @@ conn.commit()
 # タイトル
 st.title("購買部効率化アプリ")
 
-# 生徒用画面とおばちゃん用画面を切り替える
+# 生徒用画面とおばちゃん用画面の切り替え
 mode = st.radio("モードを選択してください", ("生徒用", "おばちゃん用"))
 
 # 生徒用画面
@@ -104,24 +104,25 @@ elif mode == "おばちゃん用":
         uploaded_file = st.file_uploader("商品画像をアップロード", type=["jpg", "png", "jpeg"])
         captured_image = st.camera_input("カメラで撮影")
 
+        # 画像の処理
+        image_data = None
         if uploaded_file:
             image = Image.open(uploaded_file)
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format="PNG")
+            image_data = img_byte_arr.getvalue()
         elif captured_image:
             image = Image.open(captured_image)
-        else:
-            image = None
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format="PNG")
+            image_data = img_byte_arr.getvalue()
 
+        # 商品を登録
         if st.button("商品を登録"):
             if new_item and new_price > 0:
-                # 画像をバイナリデータに変換
-                image_data = None
-                if image:
-                    img_byte_arr = io.BytesIO()
-                    image.save(img_byte_arr, format="PNG")
-                    image_data = img_byte_arr.getvalue()
-
-                # データベースに登録
-                c.execute("INSERT INTO menu (item, price, image) VALUES (?, ?, ?)", (new_item, new_price, image_data))
+                # データベースに登録（画像データは BLOB 形式で保存）
+                c.execute("INSERT INTO menu (item, price, image) VALUES (?, ?, ?)", 
+                          (new_item, new_price, sqlite3.Binary(image_data) if image_data else None))
                 conn.commit()
                 st.success(f"{new_item}が登録されました！")
             else:
