@@ -5,7 +5,7 @@ import sqlite3
 st.set_page_config(page_title="購買部効率化アプリ", layout="wide")
 
 # パスコードの設定
-ADMIN_PASSWORD = "admin123"  # おばちゃん用画面のパスコード
+ADMIN_PASSWORD = "koubai123"  # おばちゃん用画面のパスコード
 
 # データベース接続
 conn = sqlite3.connect('shop_db.db')
