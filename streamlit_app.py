@@ -31,14 +31,6 @@ CREATE TABLE IF NOT EXISTS sales (
 
 conn.commit()
 
-# メニュー作成（サンプル）
-menu = {
-    "パン": 150,
-    "ジュース": 200,
-    "おにぎり": 120,
-    "お菓子": 100
-}
-
 # タイトル
 st.title("購買部効率化アプリ")
 
@@ -48,7 +40,11 @@ mode = st.radio("モードを選択してください", ("生徒用", "おばち
 # 生徒用画面
 if mode == "生徒用":
     st.header("メニュー")
-    
+
+    # メニューをデータベースから動的に読み込む
+    c.execute("SELECT * FROM menu")
+    menu = {item[1]: item[2] for item in c.fetchall()}
+
     # メニュー選択
     items_selected = {}
     for item, price in menu.items():
