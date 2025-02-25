@@ -80,7 +80,7 @@ if mode == "生徒用画面":
             st.success("購入が完了しました！")
             st.session_state.cart = []
             st.rerun()
-()
+
     else:
         st.write("商品を選択してください。")
 
