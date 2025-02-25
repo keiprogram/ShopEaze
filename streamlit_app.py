@@ -22,7 +22,8 @@ def initialize_database():
     CREATE TABLE IF NOT EXISTS sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item TEXT NOT NULL,
-        price INTEGER NOT NULL
+        price INTEGER NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     ''')
     
@@ -139,12 +140,12 @@ else:
 
         # **売上履歴**
         st.subheader("📈 売上履歴")
-        c.execute("SELECT item, price FROM sales")
+        c.execute("SELECT item, price, timestamp FROM sales ORDER BY timestamp DESC")
         sales_data = c.fetchall()
 
         if sales_data:
-            for item_name, price in sales_data:
-                st.write(f"- {item_name} ({price} 円)")
+            for item_name, price, timestamp in sales_data:
+                st.write(f"- {timestamp} : **{item_name}** ({price} 円)")
         else:
             st.write("売上データがありません。")
     else:
