@@ -91,12 +91,14 @@ if mode == "生徒用画面":
 # **おばちゃん用画面**
 else:
     st.title("🔒 おばちゃん用管理画面")
+    st.image("image/rogo.png")
     password = st.text_input("パスコードを入力", type="password")
 
     if password == "koubaibu":
         st.success("✅ 認証成功")
         
         # **メニュー追加**
+        st.image("image/rogo.png")
         st.subheader("📌 新しい商品を登録")
         new_item = st.text_input("商品名")
         new_price = st.number_input("価格", min_value=0)
