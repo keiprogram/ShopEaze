@@ -83,7 +83,7 @@ else:
     st.title("🔒 おばちゃん用管理画面")
     password = st.text_input("パスコードを入力", type="password")
 
-    if password == "1234":
+    if password == "koubaibu":
         st.success("✅ 認証成功")
 
         # **メニュー追加**
