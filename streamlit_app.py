@@ -7,41 +7,6 @@ from PIL import Image
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
-# sales テーブルに timestamp カラムがない場合、追加する
-def add_timestamp_column():
-    try:
-        c.execute("ALTER TABLE sales ADD COLUMN timestamp DATETIME DEFAULT CURRENT_TIMESTAMP")
-        conn.commit()
-        print("✅ 'timestamp' カラムを追加しました")
-    except sqlite3.OperationalError:
-        # すでにカラムが存在する場合は何もしない
-        pass
-
-# 初期化関数を修正
-def initialize_database():
-    c.execute('''
-    CREATE TABLE IF NOT EXISTS menu (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item TEXT NOT NULL,
-        price INTEGER NOT NULL,
-        image BLOB
-    )
-    ''')
-
-    c.execute('''
-    CREATE TABLE IF NOT EXISTS sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item TEXT NOT NULL,
-        price INTEGER NOT NULL
-    )
-    ''')
-
-    # sales テーブルに timestamp カラムを追加
-    add_timestamp_column()
-
-    conn.commit()
-
-initialize_database()
 
 
 # テーブルを作成
