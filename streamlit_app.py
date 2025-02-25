@@ -7,7 +7,7 @@ from PIL import Image
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
-# 🚀 ここでテーブルをしっかり作成し、commit() で確実に保存
+# テーブルを作成
 def initialize_database():
     c.execute('''
     CREATE TABLE IF NOT EXISTS menu (
@@ -28,10 +28,9 @@ def initialize_database():
     
     conn.commit()
 
-# 📌 データベースを初期化（重要）
 initialize_database()
 
-# **生徒用画面 or おばちゃん用画面の選択**
+# 画面の切り替え
 st.sidebar.title("画面の切り替え")
 mode = st.sidebar.radio("選択してください", ["生徒用画面", "おばちゃん用画面"])
 
@@ -39,7 +38,7 @@ mode = st.sidebar.radio("選択してください", ["生徒用画面", "おば�
 if mode == "生徒用画面":
     st.title("📌 購買部メニュー")
     
-    # 🚀 ここでしっかりメニューを取得
+    # メニューを取得
     try:
         c.execute("SELECT id, item, price, image FROM menu")
         menu_items = c.fetchall()
@@ -47,12 +46,12 @@ if mode == "生徒用画面":
         st.error(f"データベースエラー: {e}")
         st.stop()
 
-    cart = []
-    total_price = 0
+    # 選択した商品のリスト
+    if 'cart' not in st.session_state:
+        st.session_state.cart = []
 
     for item_id, item_name, price, image_data in menu_items:
         cols = st.columns([2, 1, 1])
-
         cols[0].write(f"**{item_name}**")
         cols[1].write(f"{price} 円")
 
@@ -61,20 +60,26 @@ if mode == "生徒用画面":
             cols[0].image(image, width=100)
 
         if cols[2].button(f"追加", key=f"add_{item_id}"):
-            cart.append((item_name, price))
-            total_price += price
+            st.session_state.cart.append((item_name, price))
 
+    # 購入リストの表示
     st.subheader("🛒 選択した商品")
-    if cart:
-        for item_name, price in cart:
+    total_price = sum(price for _, price in st.session_state.cart)
+
+    if st.session_state.cart:
+        for item_name, price in st.session_state.cart:
             st.write(f"- {item_name} ({price} 円)")
 
-        st.write(f"**合計金額: {total_price} 円**")
-        if st.button("会計する"):
-            for item_name, price in cart:
+        # 合計金額を大きく表示
+        st.markdown(f"## 💰 合計金額: {total_price} 円")
+
+        if st.button("購入する"):
+            for item_name, price in st.session_state.cart:
                 c.execute("INSERT INTO sales (item, price) VALUES (?, ?)", (item_name, price))
             conn.commit()
             st.success("購入が完了しました！")
+            st.session_state.cart = []
+            st.experimental_rerun()
     else:
         st.write("商品を選択してください。")
 
@@ -85,12 +90,11 @@ else:
 
     if password == "koubaibu":
         st.success("✅ 認証成功")
-
+        
         # **メニュー追加**
         st.subheader("📌 新しい商品を登録")
         new_item = st.text_input("商品名")
         new_price = st.number_input("価格", min_value=0)
-
         uploaded_file = st.file_uploader("商品画像をアップロード", type=["jpg", "png", "jpeg"])
         captured_image = st.camera_input("カメラで撮影")
 
@@ -123,7 +127,6 @@ else:
 
         for item_id, item_name, price in menu_items:
             cols = st.columns([2, 1, 1])
-
             cols[0].write(f"**{item_name}**")
             cols[1].write(f"{price} 円")
 
@@ -143,6 +146,5 @@ else:
                 st.write(f"- {item_name} ({price} 円)")
         else:
             st.write("売上データがありません。")
-
     else:
         st.error("パスコードが間違っています。")
