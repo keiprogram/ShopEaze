@@ -57,7 +57,7 @@ if mode == "生徒用画面":
 
         if image_data:
             image = Image.open(io.BytesIO(image_data))
-            cols[0].image(image, width=100)
+            cols[0].image(image, width=500)
 
         if cols[2].button(f"追加", key=f"add_{item_id}"):
             st.session_state.cart.append((item_name, price))
