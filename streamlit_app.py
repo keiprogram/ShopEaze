@@ -39,6 +39,7 @@ mode = st.sidebar.radio("選択してください", ["生徒用画面", "おば�
 
 # **生徒用画面**
 if mode == "生徒用画面":
+    st.image("rogo.png")
     st.title("📌 購買部メニュー")
     
     # メニューを取得
