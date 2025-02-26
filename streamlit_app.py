@@ -7,8 +7,6 @@ from PIL import Image
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
-
-
 # テーブルを作成
 def initialize_database():
     c.execute('''
@@ -84,7 +82,6 @@ if mode == "生徒用画面":
             st.success("購入が完了しました！")
             st.session_state.cart = []
             st.rerun()
-
     else:
         st.write("商品を選択してください。")
 
@@ -122,7 +119,7 @@ else:
                           (new_item, new_price, sqlite3.Binary(image_data) if image_data else None))
                 conn.commit()
                 st.success(f"{new_item} が登録されました！")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("商品名と価格を入力してください。")
 
@@ -140,7 +137,7 @@ else:
                 c.execute("DELETE FROM menu WHERE id=?", (item_id,))
                 conn.commit()
                 st.warning(f"{item_name} を削除しました。")
-                st.experimental_rerun()
+                st.rerun()
 
         # **売上履歴**
         st.subheader("📈 売上履歴")
