@@ -67,20 +67,27 @@ if mode == "生徒用画面":
             else:
                 st.write("🚫 売り切れ")
 
-    # **購入リスト**
+       # 🛒 選択した商品一覧
     st.subheader("🛒 選択した商品")
-    total_price = sum(price for _, _, price in st.session_state.cart)
-
+    
     if st.session_state.cart:
-        for _, item_name, price in st.session_state.cart:
-            st.write(f"- {item_name} ({price} 円)")
+        cart_items = []
+        for idx, (item_name, price) in enumerate(st.session_state.cart):
+            col1, col2 = st.columns([3, 1])
+            col1.write(f"- {item_name} ({price} 円)")
+            
+            # 🔴 取り消しボタン（該当アイテムをカートから削除）
+            if col2.button("取り消し", key=f"remove_{idx}"):
+                del st.session_state.cart[idx]
+                st.rerun()
 
+        # 合計金額の計算と表示
+        total_price = sum(price for _, price in st.session_state.cart)
         st.markdown(f"## 💰 合計金額: {total_price} 円")
 
+        # ✅ 購入ボタン
         if st.button("購入する"):
-            for item_id, item_name, price in st.session_state.cart:
-                # 在庫を減らす
-                c.execute("UPDATE menu SET stock = stock - 1 WHERE id = ? AND stock > 0", (item_id,))
+            for item_name, price in st.session_state.cart:
                 c.execute("INSERT INTO sales (item, price) VALUES (?, ?)", (item_name, price))
             conn.commit()
             st.success("購入が完了しました！")
@@ -88,7 +95,8 @@ if mode == "生徒用画面":
             st.rerun()
 
     else:
-        st.write("商品を選択してください。")
+        st.write("🛍️ 商品を選択してください。")
+
 
 # **おばちゃん用画面**
 else:
