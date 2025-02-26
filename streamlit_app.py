@@ -14,7 +14,7 @@ def initialize_database():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item TEXT NOT NULL,
         price INTEGER NOT NULL,
-        stock INTEGER NOT NULL,
+        stock INTEGER NOT NULL DEFAULT 0,
         image BLOB
     )
     ''')
@@ -41,27 +41,31 @@ if mode == "生徒用画面":
     st.image("img/rogo2.png")
     st.title("📌 購買部メニュー")
     
-    c.execute("SELECT id, item, price, stock, image FROM menu")
-    menu_items = c.fetchall()
+    # メニューを取得
+    try:
+        c.execute("SELECT id, item, price, stock, image FROM menu WHERE stock > 0")
+        menu_items = c.fetchall()
+    except sqlite3.OperationalError as e:
+        st.error(f"データベースエラー: {e}")
+        st.stop()
 
+    # 選択した商品のリスト
     if 'cart' not in st.session_state:
         st.session_state.cart = []
-    
-    cols = st.columns(2)
-    for index, (item_id, item_name, price, stock, image_data) in enumerate(menu_items):
-        with cols[index % 2]:
+
+    for item_id, item_name, price, stock, image_data in menu_items:
+        cols = st.columns(2)
+        with cols[0]:
             st.write(f"**{item_name}**")
             if image_data:
                 image = Image.open(io.BytesIO(image_data))
                 st.image(image, width=150)
+            st.write(f"在庫: {stock}個")
+        with cols[1]:
             st.write(f"{price} 円")
-            st.write(f"在庫: {stock} 個")
-            if stock > 0:
-                if st.button("追加", key=f"add_{item_id}"):
-                    st.session_state.cart.append((item_id, item_name, price))
-            else:
-                st.write("在庫切れ")
-    
+            if stock > 0 and st.button(f"追加", key=f"add_{item_id}"):
+                st.session_state.cart.append((item_id, item_name, price))
+
     # 購入リストの表示
     st.subheader("🛒 選択した商品")
     total_price = sum(price for _, _, price in st.session_state.cart)
@@ -69,7 +73,8 @@ if mode == "生徒用画面":
     if st.session_state.cart:
         for _, item_name, price in st.session_state.cart:
             st.write(f"- {item_name} ({price} 円)")
-        
+
+        # 合計金額を大きく表示
         st.markdown(f"## 💰 合計金額: {total_price} 円")
 
         if st.button("購入する"):
@@ -80,6 +85,7 @@ if mode == "生徒用画面":
             st.success("購入が完了しました！")
             st.session_state.cart = []
             st.rerun()
+
     else:
         st.write("商品を選択してください。")
 
@@ -120,7 +126,7 @@ else:
                 st.success(f"{new_item} が登録されました！")
                 st.experimental_rerun()
             else:
-                st.error("商品名、価格、在庫数を入力してください。")
+                st.error("商品名、価格、在庫数を正しく入力してください。")
 
         # **メニュー一覧**
         st.subheader("🗑️ 商品管理")
