@@ -67,7 +67,7 @@ if mode == "生徒用画面":
             else:
                 st.write("🚫 売り切れ")
 
-      # カートが存在しない場合は初期化
+# カートが存在しない場合は初期化
 if 'cart' not in st.session_state or not isinstance(st.session_state.cart, list):
     st.session_state.cart = []
 
