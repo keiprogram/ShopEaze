@@ -146,16 +146,31 @@ else:
                 st.warning(f"{item_name} を削除しました。")
                 st.rerun()
 
-        # **売上履歴**
-        st.subheader("📈 売上履歴")
+               # **売上**
+        st.subheader("📊 売上")
+
+        # 売上データを取得
         c.execute("SELECT item, price, timestamp FROM sales ORDER BY timestamp DESC")
         sales_data = c.fetchall()
 
         if sales_data:
-            for item_name, price, timestamp in sales_data:
-                st.write(f"- {timestamp} : **{item_name}** ({price} 円)")
-        else:
-            st.write("売上データがありません。")
+            # 売上データをPandasのDataFrameに変換
+            import pandas as pd
+            df = pd.DataFrame(sales_data, columns=["商品名", "価格", "購入日時"])
+            df["購入日時"] = pd.to_datetime(df["購入日時"])
+            df["日付"] = df["購入日時"].dt.date  # 日付ごとに集計するための列を作成
 
-    else:
-        st.error("パスコードが間違っています。")
+            # **売上の表を表示**
+            st.dataframe(df[["日付", "商品名", "価格"]].sort_values(by="日付", ascending=False))
+
+            # **日ごとの売上合計を計算**
+            daily_sales = df.groupby("日付")["価格"].sum().reset_index()
+            daily_sales.columns = ["日付", "売上合計"]
+
+            # **日ごとの売上合計を表示**
+            st.subheader("📅 日ごとの売上合計")
+            st.dataframe(daily_sales.sort_values(by="日付", ascending=False))
+
+        else:
+            st.write("📉 売上データがありません。")
+
