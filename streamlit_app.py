@@ -7,8 +7,6 @@ from PIL import Image
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
-
-
 # テーブルを作成
 def initialize_database():
     c.execute('''
@@ -33,13 +31,35 @@ def initialize_database():
 
 initialize_database()
 
+# **CSSで中央寄せを適用**
+st.markdown(
+    """
+    <style>
+        .stApp {
+            text-align: center;
+        }
+        .stButton>button {
+            display: block;
+            margin: auto;
+        }
+        .stTextInput>div>div>input {
+            text-align: center;
+        }
+        .stNumberInput>div>div>input {
+            text-align: center;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # 画面の切り替え
 st.sidebar.title("画面の切り替え")
 mode = st.sidebar.radio("選択してください", ["生徒用画面", "おばちゃん用画面"])
 
 # **生徒用画面**
 if mode == "生徒用画面":
-    st.image("img/rogo2.png")
+    st.image("img/rogo2.png", use_column_width=True)
     st.title("📌 購買部メニュー")
     
     # メニューを取得
@@ -55,16 +75,13 @@ if mode == "生徒用画面":
         st.session_state.cart = []
 
     for item_id, item_name, price, image_data in menu_items:
-        cols = st.columns([2, 1, 1])
-        cols[0].write(f"**{item_name}**")
-        cols[1].write(f"{price} 円")
-
-        if image_data:
-            image = Image.open(io.BytesIO(image_data))
-            cols[0].image(image, width=500)
-
-        if cols[2].button(f"追加", key=f"add_{item_id}"):
-            st.session_state.cart.append((item_name, price))
+        with st.container():
+            st.write(f"**{item_name}** - {price} 円")
+            if image_data:
+                image = Image.open(io.BytesIO(image_data))
+                st.image(image, width=300)
+            if st.button(f"追加", key=f"add_{item_id}"):
+                st.session_state.cart.append((item_name, price))
 
     # 購入リストの表示
     st.subheader("🛒 選択した商品")
@@ -90,8 +107,9 @@ if mode == "生徒用画面":
 
 # **おばちゃん用画面**
 else:
+    st.image("img/rogo2.png", use_column_width=True)
     st.title("🔒 おばちゃん用管理画面")
-    st.image("img/rogo2.png")
+    
     password = st.text_input("パスコードを入力", type="password")
 
     if password == "koubaibu":
@@ -132,15 +150,13 @@ else:
         menu_items = c.fetchall()
 
         for item_id, item_name, price in menu_items:
-            cols = st.columns([2, 1, 1])
-            cols[0].write(f"**{item_name}**")
-            cols[1].write(f"{price} 円")
-
-            if cols[2].button("削除", key=f"del_{item_id}"):
-                c.execute("DELETE FROM menu WHERE id=?", (item_id,))
-                conn.commit()
-                st.warning(f"{item_name} を削除しました。")
-                st.experimental_rerun()
+            with st.container():
+                st.write(f"**{item_name}** - {price} 円")
+                if st.button("削除", key=f"del_{item_id}"):
+                    c.execute("DELETE FROM menu WHERE id=?", (item_id,))
+                    conn.commit()
+                    st.warning(f"{item_name} を削除しました。")
+                    st.experimental_rerun()
 
         # **売上履歴**
         st.subheader("📈 売上履歴")
