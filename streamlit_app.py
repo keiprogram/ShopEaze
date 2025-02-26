@@ -74,44 +74,43 @@ if mode == "生徒用画面":
             else:
                 st.write("🚫 売り切れ")
     
-    # カートがリスト形式でない場合、リセットする
-if 'cart' not in st.session_state or not isinstance(st.session_state.cart, list):
-    st.session_state.cart = []
-
-# 🛒 選択した商品一覧
-st.subheader("🛒 選択した商品")
-    
-if st.session_state.cart:
-    total_price = 0
-    items_to_remove = []
-
-    for idx, (item_id, item_name, price) in enumerate(st.session_state.cart):
-        col1, col2 = st.columns([3, 1])
-        col1.write(f"- {item_name} ({price} 円)")
-
-        # 🔴 取り消しボタン（該当アイテムをカートから削除）
-        if col2.button(f"取り消し {idx}", key=f"remove_{idx}"):
-            items_to_remove.append(idx)
-
-    # 削除リストにある商品をカートから削除
-    for idx in sorted(items_to_remove, reverse=True):
-        del st.session_state.cart[idx]
-
-    # 合計金額の計算と表示
-    total_price = sum(price for _, _, price in st.session_state.cart)
-    st.markdown(f"## 💰 合計金額: {total_price} 円")
-
-    # ✅ 購入ボタン
-    if st.button("購入する"):
-        for item_id, item_name, price in st.session_state.cart:
-            c.execute("INSERT INTO sales (item, price) VALUES (?, ?)", (item_name, price))
-        conn.commit()
-        st.success("購入が完了しました！")
-        st.session_state.cart = []
-        st.rerun()
-else:
-    st.write("🛍️ 商品を選択してください。")
-
+           # カートがリスト形式でない場合、リセットする
+        if 'cart' not in st.session_state or not isinstance(st.session_state.cart, list):
+            st.session_state.cart = []
+        
+        # 🛒 選択した商品一覧
+        st.subheader("🛒 選択した商品")
+            
+        if st.session_state.cart:
+            total_price = 0
+            items_to_remove = []
+        
+            for idx, (item_id, item_name, price) in enumerate(st.session_state.cart):
+                col1, col2 = st.columns([3, 1])
+                col1.write(f"- {item_name} ({price} 円)")
+        
+                # 🔴 取り消しボタン（該当アイテムをカートから削除）
+                if col2.button(f"取り消し {idx}", key=f"remove_{idx}"):
+                    items_to_remove.append(idx)
+        
+            # 削除リストにある商品をカートから削除
+            for idx in sorted(items_to_remove, reverse=True):
+                del st.session_state.cart[idx]
+        
+            # 合計金額の計算と表示
+            total_price = sum(price for _, _, price in st.session_state.cart)
+            st.markdown(f"## 💰 合計金額: {total_price} 円")
+        
+            # ✅ 購入ボタン
+            if st.button("購入する"):
+                for item_id, item_name, price in st.session_state.cart:
+                    c.execute("INSERT INTO sales (item, price) VALUES (?, ?)", (item_name, price))
+                conn.commit()
+                st.success("購入が完了しました！")
+                st.session_state.cart = []
+                st.rerun()
+        else:
+            st.write("🛍️ 商品を選択してください。")
 
 
 # **おばちゃん用画面**
