@@ -102,12 +102,12 @@ if st.session_state.cart:
         st.success("購入が完了しました！")
         st.session_state.cart = []
         st.rerun()
-else:
-    st.write("🛍️ 商品を選択してください。")
+    else:
+        st.write("🛍️ 商品を選択してください。")
 
 
 # **おばちゃん用画面**
-  else:
+else:
     st.title("🔒 おばちゃん用管理画面")
     st.image("img/rogo2.png")
     password = st.text_input("パスコードを入力", type="password")
