@@ -7,6 +7,8 @@ from PIL import Image
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
+
+
 # テーブルを作成
 def initialize_database():
     c.execute('''
@@ -59,10 +61,7 @@ if mode == "生徒用画面":
 
         if image_data:
             image = Image.open(io.BytesIO(image_data))
-            if cols[0].button(f"{item_name} を追加", key=f"img_{item_id}"):
-                st.session_state.cart.append((item_name, price))
-            cols[0].image(image, use_container_width=True)
-
+            cols[0].image(image, width=500)
 
         if cols[2].button(f"追加", key=f"add_{item_id}"):
             st.session_state.cart.append((item_name, price))
