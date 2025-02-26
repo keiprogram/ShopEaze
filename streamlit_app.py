@@ -7,15 +7,22 @@ from PIL import Image
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
-# **テーブルの作成と更新**
+# **データベースの初期化と更新**
 def initialize_database():
     # `menu` テーブルに `stock` カラムがあるかチェック
     c.execute("PRAGMA table_info(menu)")
     columns = [col[1] for col in c.fetchall()]
 
     if "stock" not in columns:
-        c.execute("ALTER TABLE menu ADD COLUMN stock INTEGER DEFAULT 0")
+        # `stock` カラムがない場合のみ追加
+        try:
+            c.execute("ALTER TABLE menu ADD COLUMN stock INTEGER DEFAULT 0")
+            conn.commit()
+        except sqlite3.OperationalError as e:
+            st.error(f"データベースエラー: {e}")
+            return
 
+    # `sales` テーブルが存在しない場合、作成する
     c.execute('''
     CREATE TABLE IF NOT EXISTS sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,7 +169,7 @@ else:
                 st.warning(f"{item_name} を削除しました。")
                 st.rerun()
 
-               # **売上**
+        # **売上**
         st.subheader("📊 売上")
 
         # 売上データを取得
@@ -189,4 +196,3 @@ else:
 
         else:
             st.write("📉 売上データがありません。")
-
