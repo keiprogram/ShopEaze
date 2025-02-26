@@ -14,6 +14,7 @@ def initialize_database():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item TEXT NOT NULL,
         price INTEGER NOT NULL,
+        stock INTEGER NOT NULL,
         image BLOB
     )
     ''')
@@ -40,47 +41,41 @@ if mode == "生徒用画面":
     st.image("img/rogo2.png")
     st.title("📌 購買部メニュー")
     
-    # メニューを取得
-    try:
-        c.execute("SELECT id, item, price, image FROM menu")
-        menu_items = c.fetchall()
-    except sqlite3.OperationalError as e:
-        st.error(f"データベースエラー: {e}")
-        st.stop()
+    c.execute("SELECT id, item, price, stock, image FROM menu")
+    menu_items = c.fetchall()
 
-    # 選択した商品のリスト
     if 'cart' not in st.session_state:
         st.session_state.cart = []
-
-    # 商品を横並びで表示
-    num_columns = 2  # 2列表示
-    cols = st.columns(num_columns)
-
-    for index, (item_id, item_name, price, image_data) in enumerate(menu_items):
-        col = cols[index % num_columns]
-        col.write(f"**{item_name}**")
-        
-        if image_data:
-            image = Image.open(io.BytesIO(image_data))
-            col.image(image, width=150)
-        
-        if col.button(f"追加", key=f"add_{item_id}"):
-            st.session_state.cart.append((item_name, price))
-
+    
+    cols = st.columns(2)
+    for index, (item_id, item_name, price, stock, image_data) in enumerate(menu_items):
+        with cols[index % 2]:
+            st.write(f"**{item_name}**")
+            if image_data:
+                image = Image.open(io.BytesIO(image_data))
+                st.image(image, width=150)
+            st.write(f"{price} 円")
+            st.write(f"在庫: {stock} 個")
+            if stock > 0:
+                if st.button("追加", key=f"add_{item_id}"):
+                    st.session_state.cart.append((item_id, item_name, price))
+            else:
+                st.write("在庫切れ")
+    
     # 購入リストの表示
     st.subheader("🛒 選択した商品")
-    total_price = sum(price for _, price in st.session_state.cart)
+    total_price = sum(price for _, _, price in st.session_state.cart)
 
     if st.session_state.cart:
-        for item_name, price in st.session_state.cart:
+        for _, item_name, price in st.session_state.cart:
             st.write(f"- {item_name} ({price} 円)")
-
-        # 合計金額を大きく表示
+        
         st.markdown(f"## 💰 合計金額: {total_price} 円")
 
         if st.button("購入する"):
-            for item_name, price in st.session_state.cart:
+            for item_id, item_name, price in st.session_state.cart:
                 c.execute("INSERT INTO sales (item, price) VALUES (?, ?)", (item_name, price))
+                c.execute("UPDATE menu SET stock = stock - 1 WHERE id = ? AND stock > 0", (item_id,))
             conn.commit()
             st.success("購入が完了しました！")
             st.session_state.cart = []
@@ -101,6 +96,7 @@ else:
         st.subheader("📌 新しい商品を登録")
         new_item = st.text_input("商品名")
         new_price = st.number_input("価格", min_value=0)
+        new_stock = st.number_input("在庫数", min_value=0, step=1)
         uploaded_file = st.file_uploader("商品画像をアップロード", type=["jpg", "png", "jpeg"])
         captured_image = st.camera_input("カメラで撮影")
 
@@ -117,30 +113,31 @@ else:
             image_data = img_byte_arr.getvalue()
 
         if st.button("商品を登録"):
-            if new_item and new_price > 0:
-                c.execute("INSERT INTO menu (item, price, image) VALUES (?, ?, ?)", 
-                          (new_item, new_price, sqlite3.Binary(image_data) if image_data else None))
+            if new_item and new_price > 0 and new_stock >= 0:
+                c.execute("INSERT INTO menu (item, price, stock, image) VALUES (?, ?, ?, ?)", 
+                          (new_item, new_price, new_stock, sqlite3.Binary(image_data) if image_data else None))
                 conn.commit()
                 st.success(f"{new_item} が登録されました！")
-                st.rerun()
+                st.experimental_rerun()
             else:
-                st.error("商品名と価格を入力してください。")
+                st.error("商品名、価格、在庫数を入力してください。")
 
         # **メニュー一覧**
         st.subheader("🗑️ 商品管理")
-        c.execute("SELECT id, item, price FROM menu")
+        c.execute("SELECT id, item, price, stock FROM menu")
         menu_items = c.fetchall()
 
-        for item_id, item_name, price in menu_items:
-            cols = st.columns([2, 1, 1])
+        for item_id, item_name, price, stock in menu_items:
+            cols = st.columns([2, 1, 1, 1])
             cols[0].write(f"**{item_name}**")
             cols[1].write(f"{price} 円")
+            cols[2].write(f"在庫: {stock} 個")
 
-            if cols[2].button("削除", key=f"del_{item_id}"):
+            if cols[3].button("削除", key=f"del_{item_id}"):
                 c.execute("DELETE FROM menu WHERE id=?", (item_id,))
                 conn.commit()
                 st.warning(f"{item_name} を削除しました。")
-                st.rerun()
+                st.experimental_rerun()
 
         # **売上履歴**
         st.subheader("📈 売上履歴")
