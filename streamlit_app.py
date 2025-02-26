@@ -107,7 +107,7 @@ else:
 
 
 # **おばちゃん用画面**
-else:
+  else:
     st.title("🔒 おばちゃん用管理画面")
     st.image("img/rogo2.png")
     password = st.text_input("パスコードを入力", type="password")
