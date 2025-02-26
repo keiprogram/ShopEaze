@@ -7,18 +7,15 @@ from PIL import Image
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
-# テーブルを作成
+# **テーブルの作成と更新**
 def initialize_database():
-    c.execute('''
-    CREATE TABLE IF NOT EXISTS menu (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item TEXT NOT NULL,
-        price INTEGER NOT NULL,
-        stock INTEGER NOT NULL DEFAULT 0,
-        image BLOB
-    )
-    ''')
-    
+    # `menu` テーブルに `stock` カラムがあるかチェック
+    c.execute("PRAGMA table_info(menu)")
+    columns = [col[1] for col in c.fetchall()]
+
+    if "stock" not in columns:
+        c.execute("ALTER TABLE menu ADD COLUMN stock INTEGER DEFAULT 0")
+
     c.execute('''
     CREATE TABLE IF NOT EXISTS sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,12 +24,12 @@ def initialize_database():
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    
+
     conn.commit()
 
 initialize_database()
 
-# 画面の切り替え
+# **画面の切り替え**
 st.sidebar.title("画面の切り替え")
 mode = st.sidebar.radio("選択してください", ["生徒用画面", "おばちゃん用画面"])
 
@@ -40,10 +37,10 @@ mode = st.sidebar.radio("選択してください", ["生徒用画面", "おば�
 if mode == "生徒用画面":
     st.image("img/rogo2.png")
     st.title("📌 購買部メニュー")
-    
+
     # メニューを取得
     try:
-        c.execute("SELECT id, item, price, stock, image FROM menu WHERE stock > 0")
+        c.execute("SELECT id, item, price, stock, image FROM menu")
         menu_items = c.fetchall()
     except sqlite3.OperationalError as e:
         st.error(f"データベースエラー: {e}")
@@ -53,20 +50,24 @@ if mode == "生徒用画面":
     if 'cart' not in st.session_state:
         st.session_state.cart = []
 
-    for item_id, item_name, price, stock, image_data in menu_items:
-        cols = st.columns(2)
-        with cols[0]:
+    cols = st.columns(2)
+
+    for index, (item_id, item_name, price, stock, image_data) in enumerate(menu_items):
+        with cols[index % 2]:
             st.write(f"**{item_name}**")
             if image_data:
                 image = Image.open(io.BytesIO(image_data))
                 st.image(image, width=150)
-            st.write(f"在庫: {stock}個")
-        with cols[1]:
-            st.write(f"{price} 円")
-            if stock > 0 and st.button(f"追加", key=f"add_{item_id}"):
-                st.session_state.cart.append((item_id, item_name, price))
+            st.write(f"💰 {price} 円")
+            st.write(f"📦 在庫: {stock} 個")
 
-    # 購入リストの表示
+            if stock > 0:
+                if st.button(f"追加", key=f"add_{item_id}"):
+                    st.session_state.cart.append((item_id, item_name, price))
+            else:
+                st.write("🚫 売り切れ")
+
+    # **購入リスト**
     st.subheader("🛒 選択した商品")
     total_price = sum(price for _, _, price in st.session_state.cart)
 
@@ -74,13 +75,13 @@ if mode == "生徒用画面":
         for _, item_name, price in st.session_state.cart:
             st.write(f"- {item_name} ({price} 円)")
 
-        # 合計金額を大きく表示
         st.markdown(f"## 💰 合計金額: {total_price} 円")
 
         if st.button("購入する"):
             for item_id, item_name, price in st.session_state.cart:
-                c.execute("INSERT INTO sales (item, price) VALUES (?, ?)", (item_name, price))
+                # 在庫を減らす
                 c.execute("UPDATE menu SET stock = stock - 1 WHERE id = ? AND stock > 0", (item_id,))
+                c.execute("INSERT INTO sales (item, price) VALUES (?, ?)", (item_name, price))
             conn.commit()
             st.success("購入が完了しました！")
             st.session_state.cart = []
@@ -97,7 +98,7 @@ else:
 
     if password == "koubaibu":
         st.success("✅ 認証成功")
-        
+
         # **メニュー追加**
         st.subheader("📌 新しい商品を登録")
         new_item = st.text_input("商品名")
@@ -124,9 +125,9 @@ else:
                           (new_item, new_price, new_stock, sqlite3.Binary(image_data) if image_data else None))
                 conn.commit()
                 st.success(f"{new_item} が登録されました！")
-                st.experimental_rerun()
+                st.rerun()
             else:
-                st.error("商品名、価格、在庫数を正しく入力してください。")
+                st.error("商品名・価格・在庫を入力してください。")
 
         # **メニュー一覧**
         st.subheader("🗑️ 商品管理")
@@ -143,7 +144,7 @@ else:
                 c.execute("DELETE FROM menu WHERE id=?", (item_id,))
                 conn.commit()
                 st.warning(f"{item_name} を削除しました。")
-                st.experimental_rerun()
+                st.rerun()
 
         # **売上履歴**
         st.subheader("📈 売上履歴")
@@ -155,5 +156,6 @@ else:
                 st.write(f"- {timestamp} : **{item_name}** ({price} 円)")
         else:
             st.write("売上データがありません。")
+
     else:
         st.error("パスコードが間違っています。")
