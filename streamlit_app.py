@@ -39,7 +39,7 @@ mode = st.sidebar.radio("選択してください", ["生徒用画面", "おば�
 
 # **生徒用画面**
 if mode == "生徒用画面":
-    st.image("image/rogo2.png")
+    st.image("img/rogo2.png")
     st.title("📌 購買部メニュー")
     
     # メニューを取得
@@ -91,7 +91,7 @@ if mode == "生徒用画面":
 # **おばちゃん用画面**
 else:
     st.title("🔒 おばちゃん用管理画面")
-    st.image("image/rogo2.png")
+    st.image("img/rogo2.png")
     password = st.text_input("パスコードを入力", type="password")
 
     if password == "koubaibu":
