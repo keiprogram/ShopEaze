@@ -52,16 +52,19 @@ if mode == "生徒用画面":
     if 'cart' not in st.session_state:
         st.session_state.cart = []
 
-    for item_id, item_name, price, image_data in menu_items:
-        cols = st.columns([2, 1, 1])
-        cols[0].write(f"**{item_name}**")
-        cols[1].write(f"{price} 円")
+    # 商品を横並びで表示
+    num_columns = 2  # 2列表示
+    cols = st.columns(num_columns)
 
+    for index, (item_id, item_name, price, image_data) in enumerate(menu_items):
+        col = cols[index % num_columns]
+        col.write(f"**{item_name}**")
+        
         if image_data:
             image = Image.open(io.BytesIO(image_data))
-            cols[0].image(image, width=500)
-
-        if cols[2].button(f"追加", key=f"add_{item_id}"):
+            col.image(image, width=150)
+        
+        if col.button(f"追加", key=f"add_{item_id}"):
             st.session_state.cart.append((item_name, price))
 
     # 購入リストの表示
