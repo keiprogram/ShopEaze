@@ -7,6 +7,16 @@ from PIL import Image
 conn = sqlite3.connect('shop_db.db', check_same_thread=False)
 c = conn.cursor()
 
+# ページの背景色を設定
+page_bg_css = """
+<style>
+    body {
+        background-color: #f5e9d6;
+    }
+</style>
+"""
+st.markdown(page_bg_css, unsafe_allow_html=True)
+
 # **データベースの初期化と更新**
 def initialize_database():
     # `menu` テーブルに `stock` カラムがあるかチェック
