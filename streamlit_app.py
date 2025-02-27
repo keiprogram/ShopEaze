@@ -39,7 +39,7 @@ initialize_database()
 
 # **画面の切り替え**
 st.sidebar.title("画面の切り替え")
-mode = st.sidebar.radio("選択してください", ["生徒用画面", "おばちゃん用画面"])
+mode = st.sidebar.radio("選択してください", ["生徒用画面", "管理画面"])
 
 # **生徒用画面**
 if mode == "生徒用画面":
