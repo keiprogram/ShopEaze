@@ -116,7 +116,7 @@ if mode == "生徒用画面":
 
 # **おばちゃん用画面**
 else:
-    st.title("🔒 おばちゃん用管理画面")
+    st.title("🔒 管理画面")
     st.image("img/rogo2.png")
     password = st.text_input("パスコードを入力", type="password")
 
